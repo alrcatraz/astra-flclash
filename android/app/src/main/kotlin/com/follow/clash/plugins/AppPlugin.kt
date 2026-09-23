@@ -133,11 +133,16 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
             }
 
             "initShortcuts" -> {
-                val label = call.arguments as? String
-                if (label == null) {
-                    result.error("INVALID_ARGUMENT", "Shortcut label must be a string", null)
+                val labels = call.arguments as? Map<*, *>
+                if (labels == null) {
+                    result.error(
+                        "INVALID_ARGUMENT",
+                        "Shortcut labels must be a map",
+                        null,
+                    )
                 } else {
-                    initShortcuts(label)
+                    @Suppress("UNCHECKED_CAST")
+                    initShortcuts(labels as Map<String, String>)
                     result.success(true)
                 }
             }
@@ -212,22 +217,36 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
         }
     }
 
-    private fun initShortcuts(label: String) {
-        val shortcut = with(ShortcutInfoCompat.Builder(GlobalState.application, "toggle")) {
-            setShortLabel(label)
-            setIcon(
+    private fun initShortcuts(labels: Map<String, String>) {
+        val startLabel = labels["start"] ?: "Start"
+        val stopLabel = labels["stop"] ?: "Stop"
+        val toggleLabel = labels["toggle"] ?: return
+        val shortcuts = listOf(
+            buildShortcut("start", startLabel, QuickAction.START),
+            buildShortcut("stop", stopLabel, QuickAction.STOP),
+            buildShortcut("toggle", toggleLabel, QuickAction.TOGGLE),
+        )
+        ShortcutManagerCompat.setDynamicShortcuts(
+            GlobalState.application,
+            shortcuts,
+        )
+    }
+
+    private fun buildShortcut(
+        id: String,
+        label: String,
+        action: QuickAction,
+    ): ShortcutInfoCompat {
+        return ShortcutInfoCompat.Builder(GlobalState.application, id)
+            .setShortLabel(label)
+            .setIcon(
                 IconCompat.createWithResource(
                     GlobalState.application,
                     R.mipmap.ic_launcher_round,
                 ),
             )
-            setIntent(QuickAction.TOGGLE.quickIntent)
-            build()
-        }
-        ShortcutManagerCompat.setDynamicShortcuts(
-            GlobalState.application,
-            listOf(shortcut),
-        )
+            .setIntent(action.quickIntent)
+            .build()
     }
 
     private fun isBatteryOptimizationDisabled(): Boolean {
