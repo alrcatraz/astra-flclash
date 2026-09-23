@@ -12,6 +12,18 @@ import 'package:flutter/services.dart';
 
 const _platformProbeTimeout = Duration(seconds: 2);
 
+/// Extra shortcut surfaces for external automation (Samsung Modes and
+/// Routines, Tasker). Mode shortcuts are on by default — three fixed entries;
+/// profile shortcuts are opt-in because they multiply with the profile count.
+const showModeShortcuts = bool.fromEnvironment(
+  'flclash.show_mode_shortcuts',
+  defaultValue: true,
+);
+const showProfileShortcuts = bool.fromEnvironment(
+  'flclash.show_profile_shortcuts',
+  defaultValue: false,
+);
+
 class App {
   static App? _instance;
   late MethodChannel methodChannel;
@@ -37,6 +49,19 @@ class App {
             await globalState.container
                 .read(systemActionProvider.notifier)
                 .savePreferences();
+          }
+        case 'selectProfile':
+          if (call.arguments is int) {
+            final profiles = globalState.container.read(profilesProvider);
+            final profile = profiles.cast<Profile?>().firstWhere(
+              (p) => p?.id == call.arguments,
+              orElse: () => null,
+            );
+            if (profile != null) {
+              globalState.container
+                  .read(profilesActionProvider.notifier)
+                  .setProfileAndAutoApply(profile);
+            }
           }
         default:
           throw MissingPluginException();
@@ -148,11 +173,21 @@ class App {
   }
 
   Future<bool?> initShortcuts() async {
-    return methodChannel.invokeMethod<bool>('initShortcuts', {
+    final labels = <String, String>{
       'start': currentAppLocalizations.start,
       'stop': currentAppLocalizations.stop,
       'toggle': currentAppLocalizations.toggle,
-    });
+      if (showModeShortcuts) ...{
+        'mode_rule': Mode.rule.label,
+        'mode_global': Mode.global.label,
+        'mode_direct': Mode.direct.label,
+      },
+      if (showProfileShortcuts)
+        for (final profile in globalState.container.read(profilesProvider))
+          if (profile.label.isNotEmpty)
+            'profile_${profile.id}': profile.label,
+    };
+    return methodChannel.invokeMethod<bool>('initShortcuts', labels);
   }
 
   Future<bool?> updateExcludeFromRecents(bool value) async {

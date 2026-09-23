@@ -225,17 +225,55 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
             buildShortcut("start", startLabel, QuickAction.START),
             buildShortcut("stop", stopLabel, QuickAction.STOP),
             buildShortcut("toggle", toggleLabel, QuickAction.TOGGLE),
-        )
+        ) + modeShortcuts(labels)
         ShortcutManagerCompat.setDynamicShortcuts(
             GlobalState.application,
             shortcuts,
         )
     }
 
+    /**
+     * Mode/profile shortcuts are optional: the Dart side adds them to the label
+     * map when it wants them exposed (keys "mode_rule"/"mode_global"/
+     * "mode_direct" and "profile_<id>" with a display name as value).
+     */
+    private fun modeShortcuts(labels: Map<String, String>): List<ShortcutInfoCompat> {
+        val out = mutableListOf<ShortcutInfoCompat>()
+        labels["mode_rule"]?.let {
+            out += buildShortcut("mode_rule", it, QuickAction.MODE_RULE)
+        }
+        labels["mode_global"]?.let {
+            out += buildShortcut("mode_global", it, QuickAction.MODE_GLOBAL)
+        }
+        labels["mode_direct"]?.let {
+            out += buildShortcut("mode_direct", it, QuickAction.MODE_DIRECT)
+        }
+        for ((key, label) in labels) {
+            if (!key.startsWith(PROFILE_KEY_PREFIX)) continue
+            val id = key.removePrefix(PROFILE_KEY_PREFIX).toIntOrNull() ?: continue
+            out += buildShortcut(
+                key,
+                label,
+                Components.quickActionActivity.intent.apply {
+                    action = "${GlobalState.packageName}.action.SELECT_PROFILE"
+                    putExtra(EXTRA_PROFILE_ID, id)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+                },
+            )
+        }
+        return out
+    }
+
     private fun buildShortcut(
         id: String,
         label: String,
         action: QuickAction,
+    ): ShortcutInfoCompat = buildShortcut(id, label, action.quickIntent)
+
+    private fun buildShortcut(
+        id: String,
+        label: String,
+        intent: Intent,
     ): ShortcutInfoCompat {
         return ShortcutInfoCompat.Builder(GlobalState.application, id)
             .setShortLabel(label)
@@ -245,7 +283,7 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
                     R.mipmap.ic_launcher_round,
                 ),
             )
-            .setIntent(action.quickIntent)
+            .setIntent(intent)
             .build()
     }
 
@@ -490,6 +528,8 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
         const val VPN_PERMISSION_REQUEST_CODE = 1001
         const val NOTIFICATION_PERMISSION_REQUEST_CODE = 1002
         const val INSTALLED_APPS_PERMISSION_REQUEST_CODE = 1003
+        const val PROFILE_KEY_PREFIX = "profile_"
+        const val EXTRA_PROFILE_ID = "profile_id"
 
         /**
          * The live plugin instance, set while a Flutter engine is attached.
@@ -507,6 +547,16 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
             val plugin = instance ?: return false
             runCatching { plugin.changeModeInternal(mode) }.onFailure {
                 GlobalState.log("changeMode failed: $it")
+                return false
+            }
+            return true
+        }
+
+        /** Selects and applies a profile by id on the Flutter side. */
+        fun selectProfile(id: Int): Boolean {
+            val plugin = instance ?: return false
+            runCatching { plugin.channel.invokeMethod("selectProfile", id) }.onFailure {
+                GlobalState.log("selectProfile failed: $it")
                 return false
             }
             return true
