@@ -95,9 +95,9 @@ enum Mode {
 
   static Mode fromString(String mode) {
     return switch (mode) {
-      "rule" => Mode.rule,
-      "global" => Mode.global,
-      "direct" => Mode.direct,
+      'rule' => Mode.rule,
+      'global' => Mode.global,
+      'direct' => Mode.direct,
       _ => throw ArgumentError('unknown mode: $mode'),
     };
   }

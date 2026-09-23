@@ -46,7 +46,7 @@
         ANDROID_HOME = "${androidSdk.androidsdk}/libexec/android-sdk";
         ANDROID_SDK_ROOT = "${androidSdk.androidsdk}/libexec/android-sdk";
         JAVA_HOME = "${pkgs.jdk17}";
-        GRADLE_USER_HOME = "/tmp/flclash-gradle-home";
+        GRADLE_USER_HOME = (builtins.getEnv "HOME") + "/flclash-build/gradle-home";
       };
     };
 }

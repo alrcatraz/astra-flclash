@@ -46,9 +46,8 @@ class App {
             globalState.container
                 .read(setupActionProvider.notifier)
                 .changeMode(mode);
-            await globalState.container
-                .read(systemActionProvider.notifier)
-                .savePreferences();
+            // configProvider listener in app_manager debounces a save on any
+            // config change — no explicit persistence needed here.
           }
         case 'selectProfile':
           if (call.arguments is int) {
