@@ -389,6 +389,7 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
             MethodChannel(flutterPluginBinding.binaryMessenger, "${Components.PACKAGE_NAME}/app")
         channel.setMethodCallHandler(this)
         watchPackageChanges(flutterPluginBinding.applicationContext)
+        instance = this
     }
 
     private fun watchPackageChanges(context: Context) {
@@ -403,6 +404,9 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        if (instance === this) {
+            instance = null
+        }
         packageChangeContext?.unregisterReceiver(packageChangeReceiver)
         packageChangeContext = null
         channel.setMethodCallHandler(null)
@@ -478,9 +482,34 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
         else -> false
     }
 
+    private fun changeModeInternal(mode: String) {
+        channel.invokeMethod("changeMode", mode)
+    }
+
     private companion object {
         const val VPN_PERMISSION_REQUEST_CODE = 1001
         const val NOTIFICATION_PERMISSION_REQUEST_CODE = 1002
         const val INSTALLED_APPS_PERMISSION_REQUEST_CODE = 1003
+
+        /**
+         * The live plugin instance, set while a Flutter engine is attached.
+         * External entry points (QuickActionActivity via intents/broadcasts)
+         * use it to reach the Dart side without owning an engine themselves.
+         */
+        @Volatile
+        var instance: AppPlugin? = null
+
+        /**
+         * Requests an outbound-mode change on the Flutter side.
+         * @return true when delivered; false when no engine is alive (cold start).
+         */
+        fun changeMode(mode: String): Boolean {
+            val plugin = instance ?: return false
+            runCatching { plugin.changeModeInternal(mode) }.onFailure {
+                GlobalState.log("changeMode failed: $it")
+                return false
+            }
+            return true
+        }
     }
 }

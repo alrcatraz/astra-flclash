@@ -5,6 +5,8 @@ import 'package:fl_clash/common/boot_record.dart';
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
+import 'package:fl_clash/providers/providers.dart';
+import 'package:fl_clash/state.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
@@ -26,6 +28,16 @@ class App {
           }
         case 'packagesChanged':
           onPackagesChanged?.call();
+        case 'changeMode':
+          if (call.arguments is String) {
+            final mode = Mode.fromString(call.arguments as String);
+            globalState.container
+                .read(setupActionProvider.notifier)
+                .changeMode(mode);
+            await globalState.container
+                .read(systemActionProvider.notifier)
+                .savePreferences();
+          }
         default:
           throw MissingPluginException();
       }

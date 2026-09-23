@@ -13,6 +13,12 @@ class MainActivity : FlutterActivity() {
         flutterEngine.plugins.add(ServicePlugin())
         flutterEngine.plugins.add(TilePlugin())
         ServiceState.attachFlutterEngine(flutterEngine)
+        // A mode request may have arrived while no engine was alive (cold start
+        // from a shortcut/broadcast); replay it now that Dart can handle it.
+        ModeRequest.pending?.let { mode ->
+            ModeRequest.pending = null
+            AppPlugin.changeMode(mode)
+        }
     }
 
     override fun onDestroy() {
