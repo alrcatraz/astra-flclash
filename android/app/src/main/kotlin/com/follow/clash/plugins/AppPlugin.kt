@@ -251,7 +251,7 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
         }
         for ((key, label) in labels) {
             if (!key.startsWith(PROFILE_KEY_PREFIX)) continue
-            val id = key.removePrefix(PROFILE_KEY_PREFIX).toIntOrNull() ?: continue
+            val id = key.removePrefix(PROFILE_KEY_PREFIX).toLongOrNull() ?: continue
             out += buildShortcut(
                 key,
                 label,
@@ -554,7 +554,7 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
         }
 
         /** Selects and applies a profile by id on the Flutter side. */
-        fun selectProfile(id: Int): Boolean {
+        fun selectProfile(id: Long): Boolean {
             val plugin = instance ?: return false
             runCatching { plugin.channel.invokeMethod("selectProfile", id) }.onFailure {
                 GlobalState.log("selectProfile failed: $it")

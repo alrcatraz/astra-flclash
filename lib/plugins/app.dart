@@ -57,6 +57,15 @@ class App {
               orElse: () => null,
             );
             if (profile != null) {
+              // The single source of truth for "which profile is active" is
+              // currentProfileIdProvider — CoreManager listens on it and runs
+              // fullSetup(). setProfileAndAutoApply alone only reorders the list,
+              // so a shortcut/routine firing it would silently do nothing when
+              // another profile is already current. Set the id, then apply.
+              globalState.container
+                      .read(currentProfileIdProvider.notifier)
+                      .value =
+                  profile.id;
               globalState.container
                   .read(profilesActionProvider.notifier)
                   .setProfileAndAutoApply(profile);
@@ -183,8 +192,7 @@ class App {
       },
       if (showProfileShortcuts)
         for (final profile in globalState.container.read(profilesProvider))
-          if (profile.label.isNotEmpty)
-            'profile_${profile.id}': profile.label,
+          'profile_${profile.id}': profile.realLabel,
     };
     return methodChannel.invokeMethod<bool>('initShortcuts', labels);
   }

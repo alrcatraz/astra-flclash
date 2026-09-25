@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.core.content.pm.ShortcutManagerCompat
 import com.follow.clash.common.Components
+import com.follow.clash.common.GlobalState
 import com.follow.clash.common.QuickAction
 import com.follow.clash.common.action
 import com.follow.clash.common.intent
@@ -53,8 +54,8 @@ class QuickActionActivity : Activity() {
             }
             null -> Unit
         }
-        if (intent.action == ACTION_SELECT_PROFILE) {
-            val id = intent.getIntExtra(EXTRA_PROFILE_ID, -1)
+        if (intent.action == actionSelectProfile) {
+            val id = intent.getLongExtra(EXTRA_PROFILE_ID, -1L)
             if (id >= 0 && !AppPlugin.selectProfile(id)) {
                 ModeRequest.pendingProfileId = id
                 startActivity(
@@ -72,9 +73,18 @@ class QuickActionActivity : Activity() {
         super.onDestroy()
     }
 
-    companion object {
+    internal companion object {
         const val TOGGLE_SHORTCUT_ID = "toggle"
-        const val ACTION_SELECT_PROFILE = "com.follow.clash.action.SELECT_PROFILE"
+
+        /**
+         * The select-profile action must match what AppPlugin stamps onto the
+         * dynamic shortcut intents, which builds it dynamically from the runtime
+         * applicationId (see Ext.kt QuickAction.action). A hardcoded literal here
+         * silently breaks profile selection on every non-default package variant
+         * (.dev/.debug/.cn) — never inline this string.
+         */
+        val actionSelectProfile: String
+            get() = "${GlobalState.application.packageName}.action.SELECT_PROFILE"
         const val EXTRA_PROFILE_ID = "profile_id"
     }
 }

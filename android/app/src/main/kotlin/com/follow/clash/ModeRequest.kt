@@ -11,5 +11,5 @@ object ModeRequest {
     var pending: String? = null
 
     @Volatile
-    var pendingProfileId: Int? = null
+    var pendingProfileId: Long? = null
 }
