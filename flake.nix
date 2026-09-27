@@ -18,6 +18,16 @@
         };
       };
 
+      # Writable scratch for build caches. Defaults under /tmp so the shell works
+      # out of the box; override per machine via FLCLASH_BUILD_HOME.
+      buildHome = builtins.getEnv "FLCLASH_BUILD_HOME";
+      cacheRoot = if buildHome == "" then "/tmp/flclash-build" else buildHome;
+
+      # Port of a local HTTP listener fronting the artifact hosts, if any. Left
+      # empty the probe below simply fails and nothing is exported, so this stays
+      # correct on machines without such a listener.
+      proxyPort = builtins.getEnv "FLCLASH_PROXY_PORT";
+
       # FlClash needs compileSdk/targetSdk 36 and NDK r28c (upstream CI env).
       # The `jni` pub plugin pins compileSdk 35, so both platforms are declared.
       androidSdk = pkgs.androidenv.composeAndroidPackages {
@@ -55,13 +65,14 @@
         JAVA_HOME = "${pkgs.jdk17}";
         # Gradle/maven caches and rustup toolchains run into tens of GB. The
         # Nix sandbox only allows writes to $TMPDIR, /private/tmp and the
-        # store — so on tmpfs hosts (tmpfs-backed hosts) a big build dies mid-link with
+        # store — so on a small tmpfs root a big build dies mid-link with
         # "Disk quota exceeded". Point these at a real filesystem via
-        # extra-sandbox-paths when running locally:
-        #   nix develop --option extra-sandbox-paths ./flclash-build ...
-        GRADLE_USER_HOME = "./flclash-build/gradle";
-        CARGO_HOME = "./flclash-build/cargo";
-        RUSTUP_HOME = "./flclash-build/rustup";
+        # extra-sandbox-paths when running locally, e.g.
+        #   FLCLASH_BUILD_HOME=/path/to/disk nix develop .#android \
+        #     --option extra-sandbox-paths /path/to/disk
+        GRADLE_USER_HOME = "${cacheRoot}/gradle";
+        CARGO_HOME = "${cacheRoot}/cargo";
+        RUSTUP_HOME = "${cacheRoot}/rustup";
         shellHook = ''
           mkdir -p "$GRADLE_USER_HOME" "$CARGO_HOME" "$RUSTUP_HOME"
           # The NDK clang wrapper resolves its builtin headers relative to the
@@ -78,14 +89,14 @@
           export BINDGEN_EXTRA_CLANG_ARGS_x86_64_linux_android="$bargs"
           # Gradle and cargo ignore the lowercase *_proxy vars Java/Dart honour;
           # behind the GFW their artifact hosts (services.gradle.org, crates.io)
-          # need the local the local proxy. Only when it is actually listening.
-          if timeout 2 bash -c "echo > /dev/tcp/127.0.0.1/PROXY_PORT" 2>/dev/null; then
-            export http_proxy=http://127.0.0.1:PROXY_PORT https_proxy=http://127.0.0.1:PROXY_PORT
+          # need the local proxy explicitly. Only when it is actually listening.
+          if timeout 2 bash -c "echo > /dev/tcp/127.0.0.1/${proxyPort}" 2>/dev/null; then
+            export http_proxy=http://127.0.0.1:${proxyPort} https_proxy=http://127.0.0.1:${proxyPort}
             test -f "$GRADLE_USER_HOME/gradle.properties" || cat > "$GRADLE_USER_HOME/gradle.properties" <<'PROPS'
 systemProp.http.proxyHost=127.0.0.1
-systemProp.http.proxyPort=PROXY_PORT
+systemProp.http.proxyPort=${proxyPort}
 systemProp.https.proxyHost=127.0.0.1
-systemProp.https.proxyPort=PROXY_PORT
+systemProp.https.proxyPort=${proxyPort}
 PROPS
           fi
           # Mirror the repo's pinned toolchain into the disposable rustup home.
