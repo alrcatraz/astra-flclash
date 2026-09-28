@@ -128,7 +128,7 @@ class _AddOrEditRuleViewState extends ConsumerState<_AddOrEditRuleView> {
     TextStyle? titleStyle,
     Widget? trailing,
     bool? invalid,
-    final VoidCallback? onPressed,
+    VoidCallback? onPressed,
   }) {
     return OverwriteFormRow(
       invalid: invalid ?? false,

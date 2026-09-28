@@ -230,7 +230,7 @@ class _EditProxyGroupViewState extends ConsumerState<_EditProxyGroupView> {
     required String title,
     TextStyle? titleStyle,
     Widget? trailing,
-    final VoidCallback? onPressed,
+    VoidCallback? onPressed,
     bool invalid = false,
   }) {
     return OverwriteFormRow(
