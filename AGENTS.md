@@ -3,6 +3,15 @@
 This file is the entry point for AI coding agents working in this repository. Keep it small: detailed guidance lives under
 `.agents/`, and discoverable repo skills live under `.agents/skills/*/SKILL.md`.
 
+## This is a fork
+
+Adapted from [chen08209/FlClash](https://github.com/chen08209/FlClash) (GPL-3.0),
+adding a deterministic automation surface so Samsung One UI Modes and Routines
+(and Tasker/MacroDroid) can drive the proxy without ambiguous toggles or
+third-party click macros. Why the fork exists, the adaptation table, and the
+external interface contract live in [.agents/adaptations.md](.agents/adaptations.md);
+topology and branch-model facts live in the gitignored `AGENTS.local.md`.
+
 ## Start Here
 
 Read these files before making changes:

@@ -1,10 +1,13 @@
-# astra-flclash — FlClash fork for Samsung Modes and Routines control
+# Fork Adaptations (public layer)
 
 A fork of [chen08209/FlClash](https://github.com/chen08209/FlClash) (GPL-3.0) adding a
 deterministic automation surface so **Samsung One UI Modes and Routines** (and
 Tasker/MacroDroid) can drive the proxy without ambiguous toggles or third-party click
 macros. It also carries a Nix dev shell so the Android build is reproducible rather than
 dependent on whatever happens to be installed on one machine.
+
+Branch map, remote topology and other operating facts live in the gitignored
+`AGENTS.local.md` — this file is safe to publish.
 
 ## Why this fork exists
 
@@ -17,27 +20,6 @@ Upstream ships only one app shortcut (`toggle`) and three Activity-mounted inten
   at all (upstream PRs #2288 and #1288 propose exactly this but sit unreviewed).
 - **No profile control** — selecting between subscription profiles externally was impossible.
 
-## Branch model
-
-Upstream is tracked separately from our work, so "how far behind are we" stays measurable
-and the release line never moves on an upstream sync.
-
-| Branch | Role |
-|:-------|:-----|
-| `main` | production line — our integrated progress |
-| `development` | integration branch; feature work lands here before `main` |
-| `feat/*` | one feature each, cut from the branch it will merge into |
-| `up/main` | read-only mirror of upstream `main`; fetch-only, never merged into directly |
-
-Promotion order is `feat/*` → `development` → `main`, gated by real testing at each step.
-Upstream synchronisation is done by fetching into `up/*` and merging or rebasing from
-there; nothing on `up/*` is ever rewritten.
-
-`feat/profile-app-shortcuts` is the head branch of upstream PR #2456 and is deliberately
-not merged back into `development`: it was projected from an upstream base so the PR
-carries only the feature, not this repository's build tooling. If upstream merges it, the
-fork rebases back onto vanilla FlClash.
-
 ## Adaptations over upstream `main`
 
 | Area | Change | Branch |
@@ -48,7 +30,7 @@ fork rebases back onto vanilla FlClash.
 | Linux runtime | geo-file refresh after core update; keep the IPC connection alive while a half-written frame waits on a suspended host | `main` |
 | Build | Nix dev shell pinning the Android toolchain | `main` |
 
-### External interface contract (post-integration)
+## External interface contract (post-integration)
 
 ```text
 Broadcast (adb shell am broadcast -a <action> com.follow.clash):
@@ -96,3 +78,9 @@ repository defines no signing workflow of its own.
 Copyright of the original author is retained and GPL-3.0 applies unchanged. Feature
 commits carry `Co-authored-by:` trailers crediting the upstream PR authors. Fork-specific
 work is kept out of any branch submitted upstream, so review sees only the feature.
+
+## Related agent docs
+
+- [.agents/project.md](project.md) — overview, versions, build dependencies.
+- [.agents/commands.md](commands.md) — build, development, test commands.
+- [.agents/rules.md](rules.md) — lint, testing, workflow rules.
