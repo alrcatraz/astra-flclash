@@ -1,6 +1,16 @@
 [toolchain]
 # native_toolchain_rust refuses a floating channel; bump this deliberately.
-channel = "1.95.0"
+#
+# This must name a release the build environment can actually supply offline. rustup
+# installs the channel on first use, but a declarative (Nix) build cannot perform that
+# download — the sandbox has no resolver. Our packaging therefore links a toolchain from
+# the nixpkgs it builds against (see flclash-src.nix), so this value has to match THAT
+# revision's rustc, not whatever the newest release happens to be.
+#
+# 1.98.1 is what the flake's locked nixpkgs provides. The hook's validator only rejects
+# floating channels (stable/beta/nightly) and checks the channel appears in `targets`
+# below; it does no registry lookup, so nothing else constrains the value.
+channel = "1.98.1"
 targets = [
   "aarch64-apple-darwin",
   "x86_64-apple-darwin",
