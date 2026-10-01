@@ -14,6 +14,7 @@ final _log = Logger('rust_builder');
 class RustBuilder {
   RustBuilder({
     required this.rootDir,
+    required this.workDir,
     required this.config,
     required this.cache,
     required this.notice,
@@ -21,13 +22,18 @@ class RustBuilder {
   });
 
   final String rootDir;
+  final String workDir;
   final BuildConfig config;
   final BuildCache cache;
   final BuildNotice notice;
   final List<String> harnessInputs;
 
   String get _helperPath => p.join(rootDir, config.helperDir);
-  String get _outputPath => p.join(rootDir, config.outputDir);
+  String get _outputPath => p.join(workDir, config.outputDir);
+
+  String get _cargoTargetDir => workDir == rootDir
+      ? p.join(_helperPath, 'target')
+      : p.join(workDir, 'target');
 
   Future<BuildExecution> build(Target target, String coreSha256) async {
     final triple = target.rustTriple;
@@ -41,11 +47,11 @@ class RustBuilder {
     final env = {
       'CORE_SHA256': coreSha256,
       'CORE_NAME': '${config.coreName}${target.executableExtension}',
+      'CARGO_TARGET_DIR': _cargoTargetDir,
     };
 
     final srcPath = p.join(
-      _helperPath,
-      'target',
+      _cargoTargetDir,
       triple,
       'release',
       'helper${target.executableExtension}',

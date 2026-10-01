@@ -17,6 +17,7 @@ final _log = Logger('go_builder');
 class GoBuilder {
   GoBuilder({
     required this.rootDir,
+    required this.workDir,
     required this.config,
     required this.cache,
     required this.notice,
@@ -25,6 +26,7 @@ class GoBuilder {
   });
 
   final String rootDir;
+  final String workDir;
   final BuildConfig config;
   final BuildCache cache;
   final BuildNotice notice;
@@ -32,7 +34,7 @@ class GoBuilder {
   final AndroidToolchain? androidToolchain;
 
   String get _corePath => p.join(rootDir, config.coreDir);
-  String get _outputPath => p.join(rootDir, config.outputDir);
+  String get _outputPath => p.join(workDir, config.outputDir);
 
   String _resolveCc(Target target) {
     final toolchain = androidToolchain;

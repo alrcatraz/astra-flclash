@@ -9,6 +9,7 @@ import 'build.dart';
 import 'error.dart';
 import 'logging.dart';
 import 'target.dart';
+import 'util.dart';
 
 typedef CoreBuildFunction = Future<BuildReport> Function(BuildRequest request);
 
@@ -48,7 +49,14 @@ final class CoreBuilder implements Builder {
     final BuildReport report;
     try {
       if (!buildsAssets(input)) {
-        initLogging(logFile: hookLogPath(repositoryRoot(input)));
+        initLogging(
+          logFile: hookLogPath(
+            artefactRoot(
+              repositoryRoot(input),
+              workspaceRoot: _workspaceRoot(input),
+            ),
+          ),
+        );
         _log.info(
           '=== ${DateTime.now().toIso8601String()} skipped: '
           'user-define build_assets=false pid $pid',
@@ -57,7 +65,7 @@ final class CoreBuilder implements Builder {
       }
       final request = requestFor(input);
       if (request == null) return;
-      initLogging(logFile: hookLogPath(request.rootDir));
+      initLogging(logFile: hookLogPath(request.workDir));
       _log.info(
         '=== ${DateTime.now().toIso8601String()} ${request.target} pid $pid',
       );
@@ -121,6 +129,7 @@ final class CoreBuilder implements Builder {
     final rootDir = repositoryRoot(input);
     return BuildRequest(
       rootDir: rootDir,
+      workDir: artefactRoot(rootDir, workspaceRoot: _workspaceRoot(input)),
       harnessDir: p.join(p.fromUri(input.packageRoot), 'setup_hooks'),
       target: target,
       androidToolchain: code.targetOS == OS.android
@@ -141,6 +150,14 @@ final class CoreBuilder implements Builder {
       );
     }
     return rootDir;
+  }
+
+  String? _workspaceRoot(BuildInput input) {
+    final shared = input.outputDirectoryShared.toFilePath();
+    const marker = '/.dart_tool/';
+    final cut = shared.indexOf(marker);
+    if (cut <= 0) return null;
+    return shared.substring(0, cut);
   }
 
   AndroidToolchain _androidToolchain(CodeConfig code) {

@@ -9,6 +9,32 @@ import 'error.dart';
 
 final _log = Logger('util');
 
+/// Writable root for hook artefacts — see the commit message.
+String artefactRoot(String rootDir, {String? workspaceRoot}) {
+  final configured = Platform.environment['SETUP_HOOKS_WORK_ROOT'];
+  if (configured != null && configured.isNotEmpty) return configured;
+  if (_isWritable(rootDir)) return rootDir;
+  if (workspaceRoot != null &&
+      workspaceRoot.isNotEmpty &&
+      workspaceRoot != rootDir &&
+      _isWritable(workspaceRoot)) {
+    return workspaceRoot;
+  }
+  final scratch =
+      Platform.environment['TMPDIR'] ?? Platform.environment['HOME'];
+  if (scratch == null || scratch.isEmpty) return rootDir;
+  final fallback = p.join(scratch, 'setup_hooks_artefacts');
+  return _isWritable(scratch) ? fallback : rootDir;
+}
+
+bool _isWritable(String path) {
+  try {
+    return (Directory(path).statSync().mode & 0x80) != 0; // S_IWUSR
+  } on FileSystemException {
+    return false;
+  }
+}
+
 /// Recovers the toolchains that Xcode's and Gradle's stripped PATH would hide.
 final String? _toolSearchPath = _resolveToolSearchPath();
 

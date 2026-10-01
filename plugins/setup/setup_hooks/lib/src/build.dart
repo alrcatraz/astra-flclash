@@ -28,12 +28,15 @@ class AndroidToolchain {
 class BuildRequest {
   const BuildRequest({
     required this.rootDir,
+    required this.workDir,
     required this.target,
     this.harnessDir,
     this.androidToolchain,
   });
 
   final String rootDir;
+  final String workDir;
+
   final Target target;
 
   final String? harnessDir;
@@ -66,7 +69,7 @@ Future<BuildReport> buildPlatform(BuildRequest request) async {
   }
   final rootDir = request.rootDir;
   final config = BuildConfig.load(rootDir: rootDir);
-  final cache = BuildCache(rootDir: rootDir);
+  final cache = BuildCache(rootDir: request.workDir);
   final notice = BuildNotice();
   final harnessInputs = switch (request.harnessDir) {
     null => const <String>[],
@@ -75,6 +78,7 @@ Future<BuildReport> buildPlatform(BuildRequest request) async {
 
   final core = await GoBuilder(
     rootDir: rootDir,
+    workDir: request.workDir,
     config: config,
     cache: cache,
     notice: notice,
@@ -89,13 +93,14 @@ Future<BuildReport> buildPlatform(BuildRequest request) async {
   final coreSha256 = await calcSha256(core.primaryOutput);
   final helper = await RustBuilder(
     rootDir: rootDir,
+    workDir: request.workDir,
     config: config,
     cache: cache,
     notice: notice,
     harnessInputs: harnessInputs,
   ).build(target, coreSha256);
   final manifestPath = p.join(
-    rootDir,
+    request.workDir,
     config.outputDir,
     target.platformDir,
     coreManifestName,
